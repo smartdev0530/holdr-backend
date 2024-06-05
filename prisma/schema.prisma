@@ -1,0 +1,43 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  // 📝 Extend this model
+
+  id        Int            @id @default(autoincrement())
+  username  String         @unique
+  digest    String
+  role      String
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
+  requests  TradeRequest[]
+
+  @@map("users")
+}
+
+model TradeRequest {
+  // 📝 Extend this model 
+
+  id        Int      @id @default(autoincrement())
+  status    String?
+  userId    Int
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("trade_requests")
+}
+
+model Membership {
+  // 📝 Extend this model
+
+  id Int @id @default(autoincrement())
+
+  @@map("memberships")
+}

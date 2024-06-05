@@ -1,0 +1,166 @@
+# ------------------------------------------------------
+# THIS FILE WAS AUTOMATICALLY GENERATED (DO NOT MODIFY)
+# ------------------------------------------------------
+
+"""
+A response model, containing the state of the response from the server.
+"""
+type SuccessResponseModel {
+  """The HTTP status of the response."""
+  statusCode: Int!
+
+  """Determines whether the server action was successful."""
+  isSuccess: Boolean!
+
+  """Contextual message describing what happened."""
+  message: String!
+}
+
+"""The model describing the user."""
+type UserModel {
+  """The date the user was created."""
+  createdAt: Timestamp!
+
+  """The user's ID."""
+  id: String!
+
+  """The user's role."""
+  role: String!
+
+  """The date the user was created."""
+  updatedAt: Timestamp!
+
+  """The user's username."""
+  username: String!
+}
+
+"""
+`Date` type as integer. Type represents date and time as number of milliseconds from start of UNIX epoch.
+"""
+scalar Timestamp
+
+"""
+A response model, containing the state of the response from the server.
+"""
+type SuccessRegistrationResponseModel {
+  """The HTTP status of the response."""
+  statusCode: Int!
+
+  """Determines whether the server action was successful."""
+  isSuccess: Boolean!
+
+  """Contextual message describing what happened."""
+  message: String!
+
+  """The new user."""
+  data: UserModel
+}
+
+"""A data model representing a membership"""
+type MembershipModel {
+  """The ID of the membership."""
+  id: Int!
+}
+
+""""""
+type TradeRequestModel {
+  """The date that the trade request was made."""
+  createdAt: Timestamp!
+
+  """Data about the offered membership."""
+  offered: MembershipModel!
+
+  """Data about the requested membership."""
+  requested: MembershipModel!
+}
+
+""""""
+type PagedTradeRequestsModel {
+  """The maximum number of items to return"""
+  limit: Int!
+
+  """The index of the first item to return."""
+  offset: Int!
+
+  """The total number of items."""
+  count: Int!
+
+  """The trade request item."""
+  data: [TradeRequestModel!]!
+}
+
+type Query {
+  """Get the current user's profile."""
+  profile: UserModel!
+
+  """Retrieve all the trade requests."""
+  tradeRequests(
+    """The maximum number of items to return"""
+    limit: Int
+
+    """The index of the first item to return."""
+    offset: Int
+  ): PagedTradeRequestsModel!
+}
+
+type Mutation {
+  """Create an account for a user."""
+  register(payload: CreateUserInput!): SuccessRegistrationResponseModel!
+
+  """Verify the user credentials and receive an access token."""
+  login(
+    """The user's username."""
+    username: String!
+
+    """The user's password."""
+    password: String!
+  ): String!
+
+  """Buy a membership from a creator."""
+  buyMemberships(
+    """The ID of the membership."""
+    id: Int!
+  ): SuccessResponseModel!
+
+  """
+  Accept the trade of owned membership with another user’s owned membership.
+  """
+  acceptTrade(
+    """The ID of the trade."""
+    id: Int!
+  ): SuccessResponseModel!
+
+  """
+  Decline the trade of owned membership with another user’s owned membership.
+  """
+  declineTrade(
+    """The ID of the trade request."""
+    id: Int!
+  ): SuccessResponseModel!
+
+  """Request a trade for a membership."""
+  requestTrade(
+    """The ID of the membership that the user is requesting to obtain."""
+    requestedId: Int!
+
+    """The ID of the membership that the user is offering to trade."""
+    offeredId: Int!
+  ): SuccessResponseModel!
+}
+
+"""The data fields required to create a user."""
+input CreateUserInput {
+  """The user's password."""
+  password: String!
+
+  """The user's role."""
+  role: Role!
+
+  """The user's username."""
+  username: String!
+}
+
+"""
+The user role. Accepts the following values: "general", "creator"
+"""
+scalar Role
