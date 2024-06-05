@@ -26,7 +26,8 @@
     "db:generate": "yarn prisma generate",
     "contracts:compile": "yarn hardhat compile",
     "contracts:start:node": "yarn hardhat node",
-    "contracts:deploy": "npx hardhat run scripts/deploy.js"
+    "contracts:deploy": "npx hardhat run scripts/deploy.js",
+    "contracts:deploy:sepolia": "npx hardhat run scripts/deploy.js --network sepolia"
   },
   "prisma": {
     "seed": "ts-node prisma/test.seed.ts"
