@@ -8,15 +8,15 @@ datasource db {
 }
 
 model User {
-  // 📝 Extend this model
-
-  id        Int            @id @default(autoincrement())
-  username  String         @unique
-  digest    String
-  role      String
-  createdAt DateTime       @default(now())
-  updatedAt DateTime       @updatedAt
-  requests  TradeRequest[]
+  id         Int            @id @default(autoincrement())
+  username   String         @unique
+  digest     String
+  role       String
+  createdAt  DateTime       @default(now())
+  updatedAt  DateTime       @updatedAt
+  requests   TradeRequest[]
+  privateKey String
+  publicKey  String
 
   @@map("users")
 }

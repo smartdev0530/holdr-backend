@@ -13,7 +13,11 @@ import { MembershipModule } from './membership/membership.module';
 
 @Module({
   imports: [
-    ConfigModule.forRoot({ envFilePath: '.env', validationSchema: EnvSchema }),
+    ConfigModule.forRoot({
+      envFilePath: '.env',
+      validationSchema: EnvSchema,
+      isGlobal: true, // Make ConfigModule global
+    }),
     GraphQLModule.forRootAsync<ApolloDriverConfig>({
       driver: ApolloDriver,
       imports: [ConfigModule],
@@ -24,6 +28,7 @@ import { MembershipModule } from './membership/membership.module';
         autoSchemaFile: join(process.cwd(), 'src/schema.gql'),
         buildSchemaOptions: { dateScalarMode: 'timestamp' },
       }),
+      inject: [ConfigService],
     }),
     UserModule,
     AuthModule,

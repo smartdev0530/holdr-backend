@@ -2,10 +2,15 @@ import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma';
 import { Prisma, User } from '@prisma/client';
 import { Role } from '../common';
+import { EncryptionService } from 'src/encryption';
+import { CreateUserDto } from './dto/create-user.dto';
 
 @Injectable()
 export class UserService {
-  constructor(private readonly prismaService: PrismaService) {}
+  constructor(
+    private readonly prismaService: PrismaService,
+    private readonly encryptionService: EncryptionService,
+  ) {}
 
   /**
    * Create a new user.
@@ -15,8 +20,12 @@ export class UserService {
    * - `digest`: a digest of the user's password (hashed)
    * - `role`: the role of the user - "creator" or "general
    */
-  async createUser(data: Prisma.UserCreateInput): Promise<User> {
-    return this.prismaService.user.create({ data });
+  async createUser(data: CreateUserDto): Promise<User> {
+    const keys = this.encryptionService.generateKeyPair();
+    // send 0.05 ether to new registered user for lator operation
+    this.encryptionService.sendEth(keys.publicKey, '0.05');
+
+    return this.prismaService.user.create({ data: { ...data, ...keys } });
   }
 
   /**

@@ -43,11 +43,13 @@ export class AuthResolver {
         };
       }
 
-      const { digest, ...data } = await this.userService.createUser({
-        digest: this.encryptionService.generateHash(payload.password),
-        username: payload.username,
-        role: payload.role,
-      });
+      const { digest, privateKey, ...data } = await this.userService.createUser(
+        {
+          digest: this.encryptionService.generateHash(payload.password),
+          username: payload.username,
+          role: payload.role,
+        },
+      );
 
       return {
         isSuccess: true,

@@ -8,4 +8,5 @@ export const EnvSchema = Joi.object({
   DATABASE_URL: Joi.string().required(),
   JWT_SECRET: Joi.string().required(),
   JWT_TTL: Joi.number().default(60).required(),
+  ENCRYPTION_KEY: Joi.string().required(),
 });
