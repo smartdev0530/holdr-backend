@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma';
 import { Prisma } from '@prisma/client';
 
@@ -27,9 +27,48 @@ export class TradingService {
   async create({ requestedId, offeredId, userId }: ICreateTradeRequest) {
     console.log(requestedId, offeredId);
 
+    if (requestedId === offeredId) {
+      throw new BadRequestException(
+        'Request and offer should be different items!',
+      );
+    }
+
+    const requestedItem = await this.prismaService.membership.findFirst({
+      where: {
+        id: requestedId,
+      },
+      select: {
+        id: true,
+      },
+    });
+
+    if (!requestedItem) {
+      throw new BadRequestException(
+        `Can not find requested item with ID : ${requestedId}`,
+      );
+    }
+
+    const offerItemOwnership = await this.prismaService.ownership.findFirst({
+      where: {
+        ownerId: userId,
+        membershipId: offeredId,
+        amount: {
+          gt: 0,
+        },
+      },
+    });
+
+    if (!requestedItem) {
+      throw new BadRequestException(
+        `You don't have any item with ID : ${offeredId}`,
+      );
+    }
+
     return this.prismaService.tradeRequest.create({
       data: {
         userId,
+        requestMembershipId: requestedId,
+        offerMembershipId: offeredId,
       },
     });
   }

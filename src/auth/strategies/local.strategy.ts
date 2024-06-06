@@ -6,7 +6,7 @@ import { EncryptionService } from '../../encryption';
 import { GraphQLException } from '@nestjs/graphql/dist/exceptions';
 
 @Injectable()
-export class LocalStrategy extends PassportStrategy(Strategy) {
+export class LocalStrategy extends PassportStrategy(Strategy, 'local') {
   constructor(
     private userService: UserService,
     private encryptionService: EncryptionService,

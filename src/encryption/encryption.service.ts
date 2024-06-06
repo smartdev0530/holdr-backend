@@ -3,7 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import * as bcrypt from 'bcryptjs';
 import * as CryptoJS from 'crypto-js';
 import { ethers } from 'ethers';
-
+import { wavesABI } from 'src/abis/waves.abi';
 @Injectable()
 export class EncryptionService {
   private readonly key: string;
@@ -11,11 +11,13 @@ export class EncryptionService {
   private readonly platformPrivateKey: string;
   private readonly provider: ethers.JsonRpcProvider;
   private readonly platformWallet: ethers.Wallet;
+  private readonly contractAddress: string;
 
   constructor(private readonly configService: ConfigService) {
     this.key = configService.get('ENCRYPTION_KEY') || 'default-encryption-key';
     this.rpcUrl = configService.get('RPC_URL');
     this.platformPrivateKey = configService.get('PLATFORM_PRIVATE_KEY');
+    this.contractAddress = configService.get('CONTRACT_ADDRESS');
 
     this.provider = new ethers.JsonRpcProvider(this.rpcUrl);
     this.platformWallet = new ethers.Wallet(
@@ -86,6 +88,23 @@ export class EncryptionService {
       throw new InternalServerErrorException(
         `Failed to send ETH to ${recipientAddress}`,
       );
+    }
+  }
+
+  async createNewToken(creatorAddress: string, amount: number) {
+    const contract = new ethers.Contract(
+      this.contractAddress,
+      wavesABI,
+      this.platformWallet,
+    );
+
+    try {
+      const tx = await contract.createNewMembership(amount, creatorAddress);
+      const receipt = await tx.wait();
+      return Number(receipt.logs[1].args[1]); // this is tokenId
+    } catch (error) {
+      console.error('Error calling createNewMembership:', error);
+      throw new InternalServerErrorException('Can not create new membership');
     }
   }
 }

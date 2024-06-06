@@ -60,6 +60,27 @@ type SuccessRegistrationResponseModel {
 type MembershipModel {
   """The ID of the membership."""
   id: Int!
+
+  """The date the membership was created."""
+  createdAt: Timestamp!
+
+  """The date the membership was created."""
+  updatedAt: Timestamp!
+
+  """The creator of the membership."""
+  creator: UserModel!
+
+  """The price the membership ."""
+  price: Int!
+
+  """The tokenId the membership in smart contract."""
+  tokenId: Int!
+
+  """The created amount of the membership."""
+  createdAmount: Int!
+
+  """The sold amount of the membership."""
+  soldAmount: Int!
 }
 
 """"""
@@ -87,6 +108,23 @@ type PagedTradeRequestsModel {
 
   """The trade request item."""
   data: [TradeRequestModel!]!
+}
+
+"""
+A response model, containing the state of the response from the server.
+"""
+type SuccessCreateMembershipResponseModel {
+  """The HTTP status of the response."""
+  statusCode: Int!
+
+  """Determines whether the server action was successful."""
+  isSuccess: Boolean!
+
+  """Contextual message describing what happened."""
+  message: String!
+
+  """The created membership."""
+  data: MembershipModel
 }
 
 type Query {
@@ -146,6 +184,15 @@ type Mutation {
     """The ID of the membership that the user is offering to trade."""
     offeredId: Int!
   ): SuccessResponseModel!
+
+  """Create a new membership"""
+  createNewMembership(
+    """The membership's price."""
+    price: Float!
+
+    """The membership's amount."""
+    amount: Float!
+  ): SuccessCreateMembershipResponseModel!
 }
 
 """The data fields required to create a user."""

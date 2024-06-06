@@ -5,7 +5,7 @@ import { AuthConfig } from '../config';
 import { ConfigType } from '@nestjs/config';
 
 @Injectable()
-export class JwtStrategy extends PassportStrategy(Strategy) {
+export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
   constructor(
     @Inject(AuthConfig.KEY)
     private readonly config: ConfigType<typeof AuthConfig>,

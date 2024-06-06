@@ -53,6 +53,8 @@
     "@prisma/client": "^5.14.0",
     "@types/bcryptjs": "^2.4.6",
     "bcryptjs": "^2.4.3",
+    "class-transformer": "^0.5.1",
+    "class-validator": "^0.14.1",
     "crypto-js": "^4.2.0",
     "dayjs": "^1.11.11",
     "graphql": "^16.8.1",
