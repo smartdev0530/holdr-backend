@@ -23,7 +23,7 @@ export class PaymentResolver {
     description: 'Buy a membership from a creator.',
   })
   @UseGuards(AccessTokenGuard)
-  async buyMemberships(
+  async buyMembership(
     @Args('id', {
       description: 'The ID of the membership.',
       type: () => Int,

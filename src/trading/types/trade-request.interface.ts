@@ -1,7 +1,11 @@
-import { IMembership } from '../../membership/types';
-
 export interface ITradeRequest {
-  requested: IMembership;
-  offered: IMembership;
   createdAt: Date;
+  id: number;
+  status: string;
+  userId: number;
+  requestedId: number;
+  offeredId: number;
+  updatedAt: Date;
+  acceptedAt: Date;
+  acceptedById: number;
 }

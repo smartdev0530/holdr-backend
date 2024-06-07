@@ -1,4 +1,12 @@
-import { Args, Int, Mutation, Query, Resolver } from '@nestjs/graphql';
+import {
+  Args,
+  Int,
+  Mutation,
+  Query,
+  ResolveField,
+  Resolver,
+  Parent,
+} from '@nestjs/graphql';
 import {
   CurrentUser,
   IPagedRequest,
@@ -7,13 +15,15 @@ import {
 } from '../common';
 import { HttpStatus, UseGuards } from '@nestjs/common';
 import { AccessTokenGuard } from '../auth/guards';
-import { PagedTradeRequestsModel } from './models';
+import { PagedTradeRequestsModel, TradeRequestModel } from './models';
 import { ITradeRequest } from './types';
 import { UserService } from '../user';
 import { TradingService } from './trading.service';
 import { GraphQLException } from '@nestjs/graphql/dist/exceptions';
+import { TradeRequestFilterInput } from './dto/trade-request-filter.input';
+import { SuccessTradeRequestResponseModel } from './models/success-trade-request-response.model';
 
-@Resolver()
+@Resolver(() => TradeRequestModel)
 export class TradingResolver {
   constructor(
     private userService: UserService,
@@ -25,11 +35,11 @@ export class TradingResolver {
    *
    * @param limit The maximum number of items to return
    * @param offset The index of the first item to return.
-   *
+   * @param filter 'created' : tradeRequests created by user 'acceptable' : tradeRequets which is acceptable by user, 'all' : all
    * @param user The user data object containing the current user's ID
    */
   @Query(() => PagedTradeRequestsModel, {
-    description: 'Retrieve all the trade requests.',
+    description: 'Retrieve all the trade requests that the user made.',
   })
   @UseGuards(AccessTokenGuard)
   async tradeRequests(
@@ -45,11 +55,46 @@ export class TradingResolver {
       nullable: true,
     })
     offset: number,
+    @Args('filter', {
+      description: 'The filter of trade requests.',
+      type: () => TradeRequestFilterInput,
+      nullable: true,
+    })
+    filter: TradeRequestFilterInput,
+    @Args('onlyAcceptable', {
+      description: 'return only acceptable trade requests by current user.',
+      type: () => Boolean,
+      nullable: true,
+    })
+    onlyAcceptable: boolean,
     @CurrentUser() user: { id: number },
   ): Promise<IPagedRequest<ITradeRequest, number>> {
     const currentUser = await this.userService.validateRole(user.id, [
       'general',
+      'creator',
     ]);
+    const onlyAcceptableFilter = {
+      requestMembership: {
+        Ownership: {
+          some: {
+            ownerId: user.id,
+            amount: {
+              gt: 0,
+            },
+          },
+        },
+      },
+      acceptedAt: null,
+      DeclineRequest: {
+        none: {
+          userId: user.id,
+        },
+      },
+    };
+
+    const where = onlyAcceptable
+      ? { ...filter, ...onlyAcceptableFilter }
+      : filter;
 
     if (!currentUser) {
       throw new GraphQLException(
@@ -66,22 +111,18 @@ export class TradingResolver {
 
     const [data, count] = await Promise.all([
       this.tradingService.findMany(
-        { userId: currentUser.id },
+        where,
         { limit: limit || 20, offset: offset || 0 },
         { createdAt: 'desc' },
       ),
-      this.tradingService.count({ userId: currentUser.id }),
+      this.tradingService.count(where),
     ]);
 
     return {
       offset: offset || 0,
       limit: limit || 20,
       count: count,
-      data: data.map(({ createdAt }) => ({
-        requested: { id: -1 }, // 📝 Complete by adding actual requested membership
-        offered: { id: -1 }, // 📝 Complete by adding actual offered membership
-        createdAt,
-      })),
+      data,
     };
   }
 
@@ -92,7 +133,7 @@ export class TradingResolver {
    *
    * @param user The user data object containing the current user's ID
    */
-  @Mutation(() => SuccessResponseModel, {
+  @Mutation(() => SuccessTradeRequestResponseModel, {
     description:
       'Accept the trade of owned membership with another user’s owned membership.',
   })
@@ -104,7 +145,7 @@ export class TradingResolver {
     })
     id: number,
     @CurrentUser() user: { id: number },
-  ): Promise<ISuccessResponse> {
+  ): Promise<ISuccessResponse<ITradeRequest>> {
     const currentUser = await this.userService.validateRole(user.id, [
       'general',
     ]);
@@ -123,28 +164,20 @@ export class TradingResolver {
     }
 
     try {
-      const data = await this.tradingService.update(
-        {
-          id,
-          userId: currentUser.id,
-        },
-        { status: 'accepted' },
-      );
+      const data = await this.tradingService.acceptTrade(id, user.id);
 
       return {
-        isSuccess: false,
-        message:
-          'Something weird happened. Please try again, and connect with us if it persists.',
-        statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
-        data: data,
+        isSuccess: true,
+        message: 'The trade is accepted.',
+        statusCode: HttpStatus.OK,
+        data,
       };
     } catch (e) {
       console.error(`[acceptTrade mutation] ${e}`);
 
       return {
         isSuccess: false,
-        message:
-          'Something weird happened. Please try again, and connect with us if it persists.',
+        message: `${e}`,
         statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
         data: null,
       };
@@ -158,7 +191,7 @@ export class TradingResolver {
    *
    * @param user The user data object containing the current user's ID
    */
-  @Mutation(() => SuccessResponseModel, {
+  @Mutation(() => SuccessTradeRequestResponseModel, {
     description:
       'Decline the trade of owned membership with another user’s owned membership.',
   })
@@ -198,10 +231,9 @@ export class TradingResolver {
       );
 
       return {
-        isSuccess: false,
-        message:
-          'Something weird happened. Please try again, and connect with us if it persists.',
-        statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
+        isSuccess: true,
+        message: 'The trade request is declined by this user.',
+        statusCode: HttpStatus.OK,
         data: data,
       };
     } catch (e) {
@@ -209,8 +241,7 @@ export class TradingResolver {
 
       return {
         isSuccess: false,
-        message:
-          'Something weird happened. Please try again, and connect with us if it persists.',
+        message: `${e}`,
         statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
         data: null,
       };
@@ -225,7 +256,7 @@ export class TradingResolver {
    *
    * @param user Request a trade for a membership
    */
-  @Mutation(() => SuccessResponseModel, {
+  @Mutation(() => SuccessTradeRequestResponseModel, {
     description: 'Request a trade for a membership.',
   })
   @UseGuards(AccessTokenGuard)
@@ -243,7 +274,7 @@ export class TradingResolver {
     })
     offeredId: number,
     @CurrentUser() user: { id: number },
-  ): Promise<ISuccessResponse> {
+  ): Promise<ISuccessResponse<ITradeRequest>> {
     const currentUser = await this.userService.validateRole(user.id, [
       'general',
     ]);
@@ -269,11 +300,10 @@ export class TradingResolver {
       });
 
       return {
-        isSuccess: false,
-        message:
-          'Something weird happened. Please try again, and connect with us if it persists.',
-        statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
-        data: data,
+        isSuccess: true,
+        message: 'TradeRequest created successfully.',
+        statusCode: HttpStatus.CREATED,
+        data,
       };
     } catch (e) {
       console.error(`[requestTrade mutation] ${e}`);
@@ -286,5 +316,20 @@ export class TradingResolver {
         data: null,
       };
     }
+  }
+
+  @ResolveField()
+  async requested(@Parent() tradeRequest: ITradeRequest) {
+    return this.tradingService.getRequested(tradeRequest);
+  }
+
+  @ResolveField()
+  async offered(@Parent() tradeRequest: ITradeRequest) {
+    return this.tradingService.getOffered(tradeRequest);
+  }
+
+  @ResolveField()
+  async declines(@Parent() tradeRequest: ITradeRequest) {
+    return this.tradingService.getDeclines(tradeRequest);
   }
 }

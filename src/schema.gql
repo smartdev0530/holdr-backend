@@ -84,7 +84,32 @@ type MembershipModel {
 }
 
 """"""
+type DeclineRequestModel {
+  id: Int!
+
+  """The date that the decline was made."""
+  createdAt: Timestamp!
+
+  """The ID of declined request id."""
+  requestId: Int!
+
+  """The ID of user who declined request."""
+  userId: Int!
+
+  """The date that the trade request was updated."""
+  updatedAt: Timestamp!
+
+  """The user who created this request"""
+  user: UserModel!
+
+  """The trade request which was declined"""
+  tradeRequest: TradeRequestModel!
+}
+
+""""""
 type TradeRequestModel {
+  id: Int!
+
   """The date that the trade request was made."""
   createdAt: Timestamp!
 
@@ -93,6 +118,28 @@ type TradeRequestModel {
 
   """Data about the requested membership."""
   requested: MembershipModel!
+  acceptedById: Int
+  offeredId: Int!
+  requestedId: Int!
+  userId: Int!
+
+  """The date that the trade request was accepted."""
+  acceptedAt: Timestamp!
+
+  """Trade request status."""
+  status: String!
+
+  """The date that the trade request was updated."""
+  updatedAt: Timestamp!
+
+  """The user who created this request"""
+  creator: UserModel!
+
+  """The user who accepted this request"""
+  acceptedBy: UserModel
+
+  """Declines of this trade request"""
+  declines: [DeclineRequestModel]
 }
 
 """"""
@@ -127,18 +174,92 @@ type SuccessCreateMembershipResponseModel {
   data: MembershipModel
 }
 
+""""""
+type PagedMembershipModel {
+  """The maximum number of items to return"""
+  limit: Int!
+
+  """The index of the first item to return."""
+  offset: Int!
+
+  """The total number of items."""
+  count: Int!
+
+  """The trade request item."""
+  data: [MembershipModel!]!
+}
+
+"""A data model representing user membership (membership and count)"""
+type MyMembershipModel {
+  """Membership"""
+  membership: MembershipModel!
+
+  """The amount of membership that user has."""
+  membershipCount: Int!
+}
+
+""""""
+type PagedMyMembershipModel {
+  """The maximum number of items to return"""
+  limit: Int!
+
+  """The index of the first item to return."""
+  offset: Int!
+
+  """The total number of items."""
+  count: Int!
+
+  """The trade request item."""
+  data: [MyMembershipModel!]!
+}
+
 type Query {
   """Get the current user's profile."""
   profile: UserModel!
 
-  """Retrieve all the trade requests."""
+  """Retrieve all the trade requests that the user made."""
   tradeRequests(
     """The maximum number of items to return"""
     limit: Int
 
     """The index of the first item to return."""
     offset: Int
+
+    """The filter of trade requests."""
+    filter: TradeRequestFilterInput
+
+    """return only acceptable trade requests by current user."""
+    onlyAcceptable: Boolean
   ): PagedTradeRequestsModel!
+
+  """Retrieve all the memberships that the user has."""
+  myMemberships(
+    """The maximum number of items to return"""
+    limit: Int
+
+    """The index of the first item to return."""
+    offset: Int
+  ): PagedMyMembershipModel!
+
+  """Retrieve all the memberships that the user has."""
+  allMembership(
+    """The maximum number of items to return"""
+    limit: Int
+
+    """The index of the first item to return."""
+    offset: Int
+
+    """filter for membership (sold/unsold/all)"""
+    filter: String
+  ): PagedMembershipModel!
+}
+
+input TradeRequestFilterInput {
+  status: String
+  userId: Int
+  requestMembershipId: Int
+  offerMembershipId: Int
+  acceptedById: Int
 }
 
 type Mutation {

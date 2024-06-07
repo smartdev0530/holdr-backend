@@ -18,9 +18,9 @@ model User {
   publicKey            String
   Membership           Membership[]
   Ownership            Ownership[]
-  DeclineRequest       DeclineRequest[]
   offeredTradeRequest  TradeRequest[]   @relation("TradeCreator")
   acceptedTradeRequest TradeRequest[]   @relation("TradeAcceptor")
+  DeclineRequest       DeclineRequest[]
 
   @@map("users")
 }
@@ -28,13 +28,13 @@ model User {
 model TradeRequest {
   // 📝 Extend this model 
 
-  id                  Int        @id @default(autoincrement())
-  status              String?
-  userId              Int
-  requestMembershipId Int
-  offerMembershipId   Int
-  requestMembership   Membership @relation("RequestMembership", fields: [requestMembershipId], references: [id], onDelete: Cascade)
-  offerMembership     Membership @relation("OfferMembership", fields: [offerMembershipId], references: [id], onDelete: Cascade)
+  id          Int        @id @default(autoincrement())
+  status      String?
+  userId      Int
+  requestedId Int
+  offeredId   Int
+  requested   Membership @relation("RequestMembership", fields: [requestedId], references: [id], onDelete: Cascade)
+  offered     Membership @relation("OfferMembership", fields: [offeredId], references: [id], onDelete: Cascade)
 
   createdAt      DateTime         @default(now())
   updatedAt      DateTime         @updatedAt

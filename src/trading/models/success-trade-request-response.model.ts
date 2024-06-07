@@ -1,15 +1,15 @@
 import { Field, Int, ObjectType } from '@nestjs/graphql';
 import { ISuccessResponse, IUser, UserModel } from '../../common';
 import { HttpStatus } from '@nestjs/common';
-import { MembershipModel } from './membership.model';
-import { IMembership } from '../types';
+import { TradeRequestModel } from './trade-request.model';
+import { ITradeRequest } from '../types';
 
 @ObjectType({
   description:
-    'A response model, containing the state of the response from the server.',
+    'A response model, containing the state of the response for trade request.',
 })
-export class SuccessCreateMembershipResponseModel
-  implements ISuccessResponse<IMembership>
+export class SuccessTradeRequestResponseModel
+  implements ISuccessResponse<ITradeRequest>
 {
   @Field(() => Int, { description: 'The HTTP status of the response.' })
   statusCode?: HttpStatus;
@@ -21,9 +21,9 @@ export class SuccessCreateMembershipResponseModel
     description: 'Contextual message describing what happened.',
   })
   message: string;
-  @Field(() => MembershipModel, {
-    description: 'The created membership.',
+  @Field(() => TradeRequestModel, {
+    description: 'trade request.',
     nullable: true,
   })
-  data: IMembership;
+  data: ITradeRequest;
 }
