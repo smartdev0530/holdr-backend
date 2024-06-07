@@ -225,13 +225,7 @@ export class TradingResolver {
     }
 
     try {
-      const data = await this.tradingService.update(
-        {
-          id,
-          userId: currentUser.id,
-        },
-        { status: 'accepted' },
-      );
+      const data = await this.tradingService.declineTradeRequest(id, user.id);
 
       return {
         isSuccess: true,
