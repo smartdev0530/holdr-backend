@@ -5,6 +5,8 @@ import { AccessTokenGuard } from '../auth/guards';
 import { PaymentService } from './payment.service';
 import { UserService } from 'src/user';
 import { GraphQLException } from '@nestjs/graphql/dist/exceptions';
+import { SuccessCreateMembershipResponseModel } from 'src/membership/model/success-create-membership-response.model';
+import { IMembership } from 'src/membership/types';
 
 @Resolver()
 export class PaymentResolver {
@@ -19,7 +21,7 @@ export class PaymentResolver {
    *
    * @param user The user data object containing the current user's ID
    */
-  @Mutation(() => SuccessResponseModel, {
+  @Mutation(() => SuccessCreateMembershipResponseModel, {
     description: 'Buy a membership from a creator.',
   })
   @UseGuards(AccessTokenGuard)
@@ -30,7 +32,7 @@ export class PaymentResolver {
     })
     id: number,
     @CurrentUser() user: { id: number },
-  ): Promise<ISuccessResponse> {
+  ): Promise<ISuccessResponse<IMembership>> {
     const currentUser = await this.userService.validateRole(user.id, [
       'general',
     ]);
@@ -49,11 +51,12 @@ export class PaymentResolver {
     }
 
     try {
-      await this.paymentService.buyMembership(id, user.id);
+      const data = await this.paymentService.buyMembership(id, user.id);
       return {
         isSuccess: true,
         message: 'User bought membership!',
         statusCode: HttpStatus.OK,
+        data: data,
       };
     } catch (error) {
       return {

@@ -16,12 +16,12 @@ export class TradeRequestFilterInput {
   @Field(() => Int, { nullable: true })
   @IsOptional()
   @IsInt()
-  requestMembershipId?: number;
+  requestedId?: number;
 
   @Field(() => Int, { nullable: true })
   @IsOptional()
   @IsInt()
-  offerMembershipId?: number;
+  offeredId?: number;
 
   @Field(() => Int, { nullable: true })
   @IsOptional()

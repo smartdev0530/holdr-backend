@@ -106,15 +106,17 @@ export class MembershipService {
     };
   }
 
-  async createMembership(payload: CreateMembershipDto, creatorId: number) {
+  async createMembership(
+    payload: CreateMembershipDto,
+    creator: { id: number; publicKey: string },
+  ) {
     const { price, amount } = payload;
-    // const tokenId = await this.encryptionService.createNewToken(
-    //   creator.publicKey,
-    //   amount,
-    // );
 
-    // test
-    const tokenId = 10;
+    // get tokenID
+    const tokenId = await this.encryptionService.createNewToken(
+      creator.publicKey,
+      amount,
+    );
 
     const result = await this.prismaService.membership.create({
       data: {
@@ -122,14 +124,14 @@ export class MembershipService {
         price,
         soldAmount: 0,
         tokenId,
-        creatorId: creatorId,
+        creatorId: creator.id,
       },
     });
 
     // update ownership
     await this.prismaService.ownership.create({
       data: {
-        ownerId: creatorId,
+        ownerId: creator.id,
         membershipId: result.id,
         amount,
       },

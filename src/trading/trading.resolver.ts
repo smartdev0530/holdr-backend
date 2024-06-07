@@ -74,7 +74,7 @@ export class TradingResolver {
       'creator',
     ]);
     const onlyAcceptableFilter = {
-      requestMembership: {
+      requested: {
         Ownership: {
           some: {
             ownerId: user.id,
@@ -83,6 +83,9 @@ export class TradingResolver {
             },
           },
         },
+      },
+      userId: {
+        not: user.id,
       },
       acceptedAt: null,
       DeclineRequest: {
@@ -326,6 +329,16 @@ export class TradingResolver {
   @ResolveField()
   async offered(@Parent() tradeRequest: ITradeRequest) {
     return this.tradingService.getOffered(tradeRequest);
+  }
+
+  @ResolveField()
+  async creator(@Parent() tradeRequest: ITradeRequest) {
+    return this.tradingService.getCreator(tradeRequest);
+  }
+
+  @ResolveField()
+  async acceptedBy(@Parent() tradeRequest: ITradeRequest) {
+    return this.tradingService.getAcceptedBy(tradeRequest);
   }
 
   @ResolveField()

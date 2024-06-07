@@ -2,20 +2,6 @@
 # THIS FILE WAS AUTOMATICALLY GENERATED (DO NOT MODIFY)
 # ------------------------------------------------------
 
-"""
-A response model, containing the state of the response from the server.
-"""
-type SuccessResponseModel {
-  """The HTTP status of the response."""
-  statusCode: Int!
-
-  """Determines whether the server action was successful."""
-  isSuccess: Boolean!
-
-  """Contextual message describing what happened."""
-  message: String!
-}
-
 """The model describing the user."""
 type UserModel {
   """The date the user was created."""
@@ -32,6 +18,9 @@ type UserModel {
 
   """The user's username."""
   username: String!
+
+  """The user's publicKey."""
+  publicKey: String!
 }
 
 """
@@ -81,6 +70,23 @@ type MembershipModel {
 
   """The sold amount of the membership."""
   soldAmount: Int!
+}
+
+"""
+A response model, containing the state of the response from the server.
+"""
+type SuccessCreateMembershipResponseModel {
+  """The HTTP status of the response."""
+  statusCode: Int!
+
+  """Determines whether the server action was successful."""
+  isSuccess: Boolean!
+
+  """Contextual message describing what happened."""
+  message: String!
+
+  """The created membership."""
+  data: MembershipModel
 }
 
 """"""
@@ -158,9 +164,9 @@ type PagedTradeRequestsModel {
 }
 
 """
-A response model, containing the state of the response from the server.
+A response model, containing the state of the response for trade request.
 """
-type SuccessCreateMembershipResponseModel {
+type SuccessTradeRequestResponseModel {
   """The HTTP status of the response."""
   statusCode: Int!
 
@@ -170,8 +176,8 @@ type SuccessCreateMembershipResponseModel {
   """Contextual message describing what happened."""
   message: String!
 
-  """The created membership."""
-  data: MembershipModel
+  """trade request."""
+  data: TradeRequestModel
 }
 
 """"""
@@ -257,8 +263,8 @@ type Query {
 input TradeRequestFilterInput {
   status: String
   userId: Int
-  requestMembershipId: Int
-  offerMembershipId: Int
+  requestedId: Int
+  offeredId: Int
   acceptedById: Int
 }
 
@@ -276,10 +282,10 @@ type Mutation {
   ): String!
 
   """Buy a membership from a creator."""
-  buyMemberships(
+  buyMembership(
     """The ID of the membership."""
     id: Int!
-  ): SuccessResponseModel!
+  ): SuccessCreateMembershipResponseModel!
 
   """
   Accept the trade of owned membership with another user’s owned membership.
@@ -287,7 +293,7 @@ type Mutation {
   acceptTrade(
     """The ID of the trade."""
     id: Int!
-  ): SuccessResponseModel!
+  ): SuccessTradeRequestResponseModel!
 
   """
   Decline the trade of owned membership with another user’s owned membership.
@@ -295,7 +301,7 @@ type Mutation {
   declineTrade(
     """The ID of the trade request."""
     id: Int!
-  ): SuccessResponseModel!
+  ): SuccessTradeRequestResponseModel!
 
   """Request a trade for a membership."""
   requestTrade(
@@ -304,10 +310,10 @@ type Mutation {
 
     """The ID of the membership that the user is offering to trade."""
     offeredId: Int!
-  ): SuccessResponseModel!
+  ): SuccessTradeRequestResponseModel!
 
   """Create a new membership"""
-  createNewMembership(
+  createMembership(
     """The membership's price."""
     price: Float!
 

@@ -1,8 +1,10 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma';
-import { Prisma } from '@prisma/client';
+import { Prisma, PrismaClient } from '@prisma/client';
 import { ITradeRequest } from './types';
 import { IDeclineRequest } from './types/decline-request.interface';
+import { DefaultArgs } from '@prisma/client/runtime/library';
+import { EncryptionService } from 'src/encryption';
 
 interface ICreateTradeRequest {
   requestedId: number;
@@ -17,7 +19,10 @@ interface IPaginationOptions {
 
 @Injectable()
 export class TradingService {
-  constructor(private readonly prismaService: PrismaService) {}
+  constructor(
+    private readonly prismaService: PrismaService,
+    private readonly encryptionService: EncryptionService,
+  ) {}
 
   /**
    * Create a new trade request record.
@@ -91,6 +96,24 @@ export class TradingService {
     });
   }
 
+  async getCreator(tradeRequest: ITradeRequest) {
+    return this.prismaService.user.findFirst({
+      where: {
+        id: tradeRequest.userId,
+      },
+    });
+  }
+
+  async getAcceptedBy(tradeRequest: ITradeRequest) {
+    if (tradeRequest.acceptedById)
+      return this.prismaService.user.findFirst({
+        where: {
+          id: tradeRequest.acceptedById,
+        },
+      });
+    return null;
+  }
+
   async getDeclines(tradeRequest: ITradeRequest) {
     return this.prismaService.declineRequest.findMany({
       where: {
@@ -118,6 +141,18 @@ export class TradingService {
   async acceptTrade(tradeId: number, acceptorId: number) {
     const currentTrade = await this.prismaService.tradeRequest.findFirst({
       where: { id: tradeId },
+      include: {
+        requested: {
+          select: {
+            tokenId: true,
+          },
+        },
+        offered: {
+          select: {
+            tokenId: true,
+          },
+        },
+      },
     });
 
     if (!currentTrade || currentTrade.acceptedAt) {
@@ -126,6 +161,11 @@ export class TradingService {
       );
     }
 
+    if (acceptorId === currentTrade.userId) {
+      throw new BadRequestException(
+        `You are creator of this trade. Can't accept it.`,
+      );
+    }
     const declinedTrade = await this.prismaService.declineRequest.findFirst({
       where: {
         requestId: tradeId,
@@ -182,6 +222,35 @@ export class TradingService {
       );
     }
 
+    // on-chain to accept transaction
+    const acceptor = await this.prismaService.user.findFirst({
+      where: {
+        id: acceptorId,
+      },
+    });
+
+    const requester = await this.prismaService.user.findFirst({
+      where: {
+        id: currentTrade.userId,
+      },
+    });
+
+    const sendToAcceptorPromise = this.encryptionService.sendToken(
+      currentTrade.offered.tokenId,
+      acceptor.publicKey,
+      requester.publicKey,
+      requester.privateKey,
+    );
+
+    const sendToRequesterPromise = this.encryptionService.sendToken(
+      currentTrade.requested.tokenId,
+      requester.publicKey,
+      acceptor.publicKey,
+      acceptor.privateKey,
+    );
+
+    await Promise.all([sendToAcceptorPromise, sendToRequesterPromise]);
+
     // accept and update ownership
     // rollback when any one of tx is not done
     return await this.prismaService.$transaction(async (tx) => {
@@ -214,34 +283,17 @@ export class TradingService {
       });
 
       //incremement on sending item
+      await this.addOrIncrementOwnership(
+        tx,
+        acceptorId,
+        currentTrade.offeredId,
+      );
 
-      await tx.ownership.update({
-        where: {
-          ownerId_membershipId: {
-            ownerId: acceptorId,
-            membershipId: currentTrade.offeredId,
-          },
-        },
-        data: {
-          amount: {
-            increment: 1,
-          },
-        },
-      });
-
-      await tx.ownership.update({
-        where: {
-          ownerId_membershipId: {
-            ownerId: currentTrade.userId,
-            membershipId: currentTrade.requestedId,
-          },
-        },
-        data: {
-          amount: {
-            increment: 1,
-          },
-        },
-      });
+      await this.addOrIncrementOwnership(
+        tx,
+        currentTrade.userId,
+        currentTrade.requestedId,
+      );
 
       // accept TradeRequest
       return await tx.tradeRequest.update({
@@ -296,6 +348,46 @@ export class TradingService {
     });
 
     return currentTrade;
+  }
+
+  async addOrIncrementOwnership(
+    tx: Omit<
+      PrismaClient<Prisma.PrismaClientOptions, never, DefaultArgs>,
+      '$connect' | '$disconnect' | '$on' | '$transaction' | '$use' | '$extends'
+    >,
+    ownerId: number,
+    membershipId: number,
+  ) {
+    const prevOwnership = await tx.ownership.findFirst({
+      where: {
+        ownerId,
+        membershipId,
+      },
+    });
+
+    if (prevOwnership) {
+      await tx.ownership.update({
+        where: {
+          ownerId_membershipId: {
+            ownerId,
+            membershipId,
+          },
+        },
+        data: {
+          amount: {
+            increment: 1,
+          },
+        },
+      });
+    } else {
+      await tx.ownership.create({
+        data: {
+          ownerId,
+          membershipId,
+          amount: 1,
+        },
+      });
+    }
   }
 
   /**

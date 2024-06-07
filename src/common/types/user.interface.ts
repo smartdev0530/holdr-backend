@@ -6,4 +6,5 @@ export interface IUser {
   role: Role;
   createdAt: Date;
   updatedAt: Date;
+  publicKey: string;
 }

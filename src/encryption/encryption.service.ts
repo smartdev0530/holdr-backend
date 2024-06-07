@@ -2,7 +2,7 @@ import { Injectable, InternalServerErrorException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import * as bcrypt from 'bcryptjs';
 import * as CryptoJS from 'crypto-js';
-import { ethers } from 'ethers';
+import { Wallet, ethers } from 'ethers';
 import { wavesABI } from 'src/abis/waves.abi';
 @Injectable()
 export class EncryptionService {
@@ -105,6 +105,37 @@ export class EncryptionService {
     } catch (error) {
       console.error('Error calling createNewMembership:', error);
       throw new InternalServerErrorException('Can not create new membership');
+    }
+  }
+
+  async sendToken(
+    tokenId: number,
+    receiverAddress: string,
+    senderAddress: string,
+    senderEncryptedPrivateKey: string,
+  ) {
+    const senderPrivateKey = this.decrypt(senderEncryptedPrivateKey);
+    const senderWallet = new ethers.Wallet(senderPrivateKey, this.provider);
+
+    const contract = new ethers.Contract(
+      this.contractAddress,
+      wavesABI,
+      senderWallet,
+    );
+
+    try {
+      const tx = await contract.safeTransferFrom(
+        senderAddress,
+        receiverAddress,
+        tokenId,
+        1,
+        '0x00',
+      );
+      const receipt = await tx.wait();
+      return; // this is tokenId
+    } catch (error) {
+      console.error('Error calling safeTransferFrom:', error);
+      throw new InternalServerErrorException('Can not safeTransferFrom');
     }
   }
 }

@@ -24,6 +24,19 @@ export class PaymentService {
         creatorId: true,
         soldAmount: true,
         createdAmount: true,
+        tokenId: true,
+      },
+    });
+
+    const buyer = await this.prismaService.user.findFirst({
+      where: {
+        id: buyerId,
+      },
+    });
+
+    const creator = await this.prismaService.user.findFirst({
+      where: {
+        id: membership.creatorId,
       },
     });
 
@@ -34,58 +47,70 @@ export class PaymentService {
     if (membership.soldAmount === membership.createdAmount) {
       throw new BadRequestException('Membership is sold out');
     }
-    // update membership, and ownership of creator
 
-    await this.prismaService.membership.update({
-      where: { id: membershipId },
-      data: {
-        soldAmount: {
-          increment: 1,
-        },
-      },
-    });
+    // update membership, and ownership of creator, if failed we need to rollback
 
-    await this.prismaService.ownership.update({
-      where: {
-        ownerId_membershipId: {
-          ownerId: membership.creatorId,
-          membershipId,
-        },
-      },
-      data: {
-        amount: {
-          decrement: 1,
-        },
-      },
-    });
+    // send token on-chain
+    await this.encryptionService.sendToken(
+      membership.tokenId,
+      buyer.publicKey,
+      creator.publicKey,
+      creator.privateKey,
+    );
 
-    // update ownership of buyer
-    const prevOwnership = await this.prismaService.ownership.findFirst({
-      where: {
-        ownerId: buyerId,
-        membershipId: membership.id,
-      },
-    });
-
-    if (prevOwnership) {
-      await this.prismaService.ownership.update({
+    return await this.prismaService.$transaction(async (tx) => {
+      await tx.ownership.update({
         where: {
-          id: prevOwnership.id,
+          ownerId_membershipId: {
+            ownerId: membership.creatorId,
+            membershipId,
+          },
         },
         data: {
           amount: {
+            decrement: 1,
+          },
+        },
+      });
+
+      // update ownership of buyer
+      const prevOwnership = await tx.ownership.findFirst({
+        where: {
+          ownerId: buyerId,
+          membershipId: membership.id,
+        },
+      });
+
+      if (prevOwnership) {
+        await tx.ownership.update({
+          where: {
+            id: prevOwnership.id,
+          },
+          data: {
+            amount: {
+              increment: 1,
+            },
+          },
+        });
+      } else {
+        await tx.ownership.create({
+          data: {
+            ownerId: buyerId,
+            membershipId: membershipId,
+            amount: 1,
+          },
+        });
+      }
+
+      //return updated membership
+      return await tx.membership.update({
+        where: { id: membershipId },
+        data: {
+          soldAmount: {
             increment: 1,
           },
         },
       });
-    } else {
-      await this.prismaService.ownership.create({
-        data: {
-          ownerId: buyerId,
-          membershipId: membershipId,
-          amount: 1,
-        },
-      });
-    }
+    });
   }
 }

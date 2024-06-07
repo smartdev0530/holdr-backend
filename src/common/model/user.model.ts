@@ -13,4 +13,7 @@ export class UserModel implements IUser {
   updatedAt: Date;
   @Field(() => String, { description: "The user's username." })
   username: string;
+
+  @Field(() => String, { description: "The user's publicKey." })
+  publicKey: string;
 }

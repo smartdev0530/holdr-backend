@@ -60,7 +60,7 @@ export class MembershipResolver {
 
     const data = await this.membershipServive.createMembership(
       createMembershipDto,
-      currentUser.id,
+      currentUser,
     );
 
     return {
