@@ -27,6 +27,7 @@ import { MembershipModule } from './membership/membership.module';
           Environment.Development,
         autoSchemaFile: join(process.cwd(), 'src/schema.gql'),
         buildSchemaOptions: { dateScalarMode: 'timestamp' },
+        introspection: true,
       }),
       inject: [ConfigService],
     }),
