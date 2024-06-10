@@ -103,6 +103,7 @@ Deploy smart contract
 
 `npx hardhat verify --network sepolia 0x2f34bd008d859e45ca5e34597B19CF8CB70688B8 'https://example.com/metadata/{id}.json' '0xd70d4f3ee8186986a388bCF8711789C288a86f19'`
 
+
 # Contributors
 
 - [Tak](https://github.com/takumhonde9)
